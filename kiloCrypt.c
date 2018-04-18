@@ -104,7 +104,7 @@ struct editorConfig {
     char statusmsg[80];
     time_t statusmsg_time;
     struct editorSyntax *syntax;    /* Current syntax highlight, or NULL. */
-    int encryptedmode;  /* Is editor in encrypted mode? */
+    int encryptedmode;  /* Is editor in encrypted mode? */ 
 };
 
 static struct editorConfig E_CONFIG;
