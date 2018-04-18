@@ -62,6 +62,9 @@
 #define HL_HIGHLIGHT_STRINGS (1<<0)
 #define HL_HIGHLIGHT_NUMBERS (1<<1)
 
+#define false 0
+#define true 1
+
 struct editorSyntax {
     char **filematch;
     char **keywords;
@@ -1161,6 +1164,16 @@ void editorMoveCursor(int key) {
     }
 }
 
+void editorToggleEncryption(void) {
+    E_CONFIG.encryptedmode = !E_CONFIG.encryptedmode;
+
+    if (E_CONFIG.encryptedmode) {
+        editorSetStatusMessage("Encryption-Mode enabled!");
+    } else {
+        editorSetStatusMessage("Encryption-Mode disabled!");
+    }
+}
+
 /* Process events arriving from the standard input, which is, the user
  * is typing stuff on the terminal. */
 #define KILO_QUIT_TIMES 3
@@ -1199,7 +1212,7 @@ void editorProcessKeypress(int fd) {
         editorShowHelpInStatusMessage();
         break;
     case CTRL_P:
-        editorSetStatusMessage("Maniac! Ctrl-P pressed!");
+        editorToggleEncryption();
         break;
     case BACKSPACE:     /* Backspace */
     case DEL_KEY:
@@ -1260,7 +1273,7 @@ void initEditor(void) {
         exit(1);
     }
 
-    E_CONFIG.encryptedmode = 0;
+    E_CONFIG.encryptedmode = false;
     E_CONFIG.screenrows -= 2; /* Get room for status bar. */
 }
 
