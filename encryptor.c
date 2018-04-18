@@ -21,7 +21,7 @@ typedef struct encryptor_struct_t {
 } encryptor_struct_t;
 
 
-int openfile(*filename)
+int openfile(char *filename)
 {
     FILE * fp;
     char * line = NULL;
