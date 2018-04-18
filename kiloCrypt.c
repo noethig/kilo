@@ -877,7 +877,7 @@ void editorRefreshScreen(void) {
             if (E_CONFIG.numrows == 0 && y == E_CONFIG.screenrows/3) {
                 char welcome[80];
                 int welcomelen = snprintf(welcome,sizeof(welcome),
-                    "KiloCrypt editor -- verison %s\x1b[0K\r\n", KILO_CRYPT_VERSION);
+                    "KiloCrypt editor -- version %s\x1b[0K\r\n", KILO_CRYPT_VERSION);
                 int padding = (E_CONFIG.screencols-welcomelen)/2;
                 if (padding) {
                     abAppend(&ab,"~",1);
@@ -955,7 +955,9 @@ void editorRefreshScreen(void) {
     abAppend(&ab,"\x1b[0m\r\n",6);
 
     /* Second row depends on E_CONFIG.statusmsg and the status message update time. */
-    abAppend(&ab,"\x1b[0K",4);
+    // BgGreen = "\x1b[42m"
+    // abAppend(&ab,"\x1b[0K",4);
+    abAppend(&ab,"\x1b[42m",4);
     int msglen = strlen(E_CONFIG.statusmsg);
     if (msglen && time(NULL)-E_CONFIG.statusmsg_time < 5)
         abAppend(&ab,E_CONFIG.statusmsg,msglen <= E_CONFIG.screencols ? msglen : E_CONFIG.screencols);
