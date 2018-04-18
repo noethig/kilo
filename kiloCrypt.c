@@ -957,7 +957,8 @@ void editorRefreshScreen(void) {
     /* Second row depends on E_CONFIG.statusmsg and the status message update time. */
     // BgGreen = "\x1b[42m"
     // abAppend(&ab,"\x1b[0K",4);
-    abAppend(&ab,"\x1b[5K",4);
+    abAppend(&ab,"\x1b[0K",4);
+    abAppend(&ab,"\x1b[42m",4);
     int msglen = strlen(E_CONFIG.statusmsg);
     if (msglen && time(NULL)-E_CONFIG.statusmsg_time < 5)
         abAppend(&ab,E_CONFIG.statusmsg,msglen <= E_CONFIG.screencols ? msglen : E_CONFIG.screencols);
