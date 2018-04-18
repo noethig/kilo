@@ -10,6 +10,8 @@
 #define KEY_PREFIX ("somekey")
 #define KEY_COUNT (1024*1024)
 
+#define MAPPING_FILE_NAME ("mapping.conf")
+
 
 typedef struct data_struct_s
 {
@@ -23,7 +25,7 @@ typedef struct encryptor_struct_t {
 } encryptor_struct_t;
 
 
-void openFile(FILE* fp){
+void loadMappingFile(FILE* fp){
     char buf[bufSize];
 
     if ((fp = fopen(fp, "r")) == NULL)
@@ -42,42 +44,17 @@ void openFile(FILE* fp){
  
 int main(int argc, char *argv[])
 {
-  if (argc != 2)
-  {
-    fprintf(stderr,
-            "Usage: %s <soure-file>\n", argv[0]);
-    return 1;
-  }
-  openFile(argv[1]);
-  return 0;
-}
-
-/*
-int openfile(char *filename)
-{
-    FILE * fp;
-    char * line = NULL;
-    size_t len = 0;
-    ssize_t read;
-
-    fp = fopen(filename, "r");
-    if (fp == NULL)
-        exit(EXIT_FAILURE);
-
-    while ((read = getline(&line, &len, fp)) != -1) {
-        printf("Retrieved line of length %zu :\n", read);
-        printf("%s", line);
+    encryptor_new();
+    if (argc == 2) {
+        printf("yallah %s", argv[1]);
     }
-
-    fclose(fp);
-    if (line)
-        free(line);
-    exit(EXIT_SUCCESS);
+    
+    return 0;
 }
 
-void encryptor_new(char *filename) {
-    openFile(filename);
-}*/
+void encryptor_new() {
+    loadMappingFile(MAPPING_FILE_NAME);
+}
 
 /*
 int main(char* argv, int argc) {
