@@ -18,7 +18,7 @@ typedef struct data_struct_s
 typedef struct encryptor_struct_t {
     map_t map;
     map_t inverseMap;
-} encryptor_struct_t
+} encryptor_struct_t;
 
 
 int openfile(*filename)
