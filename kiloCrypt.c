@@ -114,6 +114,7 @@ enum KEY_ACTION{
         TAB = 9,            /* Tab */
         CTRL_L = 12,        /* Ctrl+l */
         ENTER = 13,         /* Enter */
+        CTRL_P = 16,        /* Ctrl-p */
         CTRL_Q = 17,        /* Ctrl-q */
         CTRL_S = 19,        /* Ctrl-s */
         CTRL_U = 21,        /* Ctrl-u */
@@ -344,7 +345,9 @@ failed:
     return -1;
 }
 
+
 /* ====================== Syntax highlight color scheme  ==================== */
+#pragma region "Syntax highlight color scheme"
 
 int is_separator(int c) {
     return c == '\0' || isspace(c) || strchr(",.()+-/*=~%[];",c) != NULL;
@@ -359,6 +362,7 @@ int editorRowHasOpenComment(erow *row) {
                             row->render[row->rsize-1] != '/'))) return 1;
     return 0;
 }
+
 
 /* Set every byte of row->hl (that corresponds to every character in the line)
  * to the right syntax highlight type (HL_* defines). */
@@ -532,6 +536,8 @@ void editorSelectSyntaxHighlight(char *filename) {
         }
     }
 }
+#pragma endregion "Syntax highlight color scheme"
+
 
 /* ======================= Editor rows implementation ======================= */
 
@@ -1189,6 +1195,7 @@ void editorProcessKeypress(int fd) {
         editorFind(fd);
         break;
     case CTRL_H:        /* Ctrl-h */
+        editorShowHelpInStatusMessage();
         break;
     case BACKSPACE:     /* Backspace */
     case DEL_KEY:
@@ -1251,6 +1258,11 @@ void initEditor(void) {
     E.screenrows -= 2; /* Get room for status bar. */
 }
 
+void editorShowHelpInStatusMessage(void) {
+    editorSetStatusMessage(
+        "HELP: Ctrl-H = show all commands | Ctrl-S = save | Ctrl-Q = quit | Ctrl-F = find");
+}
+
 int main(int argc, char **argv) {
     if (argc != 2) {
         fprintf(stderr,"Usage: kiloCrypt <filename>\n");
@@ -1261,8 +1273,7 @@ int main(int argc, char **argv) {
     editorSelectSyntaxHighlight(argv[1]);
     editorOpen(argv[1]);
     enableRawMode(STDIN_FILENO);
-    editorSetStatusMessage(
-        "HELP: Ctrl-S = save | Ctrl-Q = quit | Ctrl-F = find");
+    editorShowHelpInStatusMessage();
     while(1) {
         editorRefreshScreen();
         editorProcessKeypress(STDIN_FILENO);
