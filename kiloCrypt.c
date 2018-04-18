@@ -1260,7 +1260,7 @@ void initEditor(void) {
 
 void editorShowHelpInStatusMessage(void) {
     editorSetStatusMessage(
-        "HELP: Ctrl-H = show all commands | Ctrl-S = save | Ctrl-Q = quit | Ctrl-F = find");
+        "HELP (Ctrl-H): Ctrl-S = save | Ctrl-Q = quit | Ctrl-F = find");
 }
 
 int main(int argc, char **argv) {

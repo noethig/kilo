@@ -17,7 +17,7 @@ Keys:
     CTRL-S: Save
     CTRL-Q: Quit
     CTRL-F: Find string in file (ESC to exit search, arrows to navigate)
-    CTRL-H: Encrypt/Decrypt
+    CTRL-P: Encrypt/Decrypt
 
 
 KiloCrypt was written by Martin Nöthig and is released under the BSD 2 
