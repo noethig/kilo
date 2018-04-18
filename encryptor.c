@@ -43,15 +43,6 @@ void loadMappingFile(FILE* fp){
     fclose(fp);
 }
  
-int main(int argc, char *argv[])
-{
-    encryptor_t e  = encryptor_new();
-    if (argc == 2) {
-        printf("yallah %s", argv[1]);
-    }
-
-    return 0;
-}
 
 encryptor_t* encryptor_new() {
     encryptor_t* e = (encryptor_t*) malloc(sizeof(encryptor_t));
@@ -73,6 +64,17 @@ encryptor_t* encryptor_new() {
 
 	return e;
 }
+
+int main(int argc, char *argv[])
+{
+    encryptor_t e  = encryptor_new();
+    if (argc == 2) {
+        printf("yallah %s", argv[1]);
+    }
+
+    return 0;
+}
+
 
 
 // int main(char* argv, int argc)
