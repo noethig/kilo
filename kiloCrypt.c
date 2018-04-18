@@ -101,9 +101,10 @@ struct editorConfig {
     char statusmsg[80];
     time_t statusmsg_time;
     struct editorSyntax *syntax;    /* Current syntax highlight, or NULL. */
+    int encryptedmode;  /* Is editor in encrypted mode? */
 };
 
-static struct editorConfig E;
+static struct editorConfig E_CONFIG;
 
 enum KEY_ACTION{
         KEY_NULL = 0,       /* NULL */
@@ -187,9 +188,9 @@ static struct termios orig_termios; /* In order to restore at exit.*/
 
 void disableRawMode(int fd) {
     /* Don't even check the return value as it's too late. */
-    if (E.rawmode) {
+    if (E_CONFIG.rawmode) {
         tcsetattr(fd,TCSAFLUSH,&orig_termios);
-        E.rawmode = 0;
+        E_CONFIG.rawmode = 0;
     }
 }
 
@@ -202,7 +203,7 @@ void editorAtExit(void) {
 int enableRawMode(int fd) {
     struct termios raw;
 
-    if (E.rawmode) return 0; /* Already enabled. */
+    if (E_CONFIG.rawmode) return 0; /* Already enabled. */
     if (!isatty(STDIN_FILENO)) goto fatal;
     atexit(editorAtExit);
     if (tcgetattr(fd,&orig_termios) == -1) goto fatal;
@@ -224,7 +225,7 @@ int enableRawMode(int fd) {
 
     /* put terminal in raw mode after flushing */
     if (tcsetattr(fd,TCSAFLUSH,&raw) < 0) goto fatal;
-    E.rawmode = 1;
+    E_CONFIG.rawmode = 1;
     return 0;
 
 fatal:
@@ -528,7 +529,7 @@ void editorSelectSyntaxHighlight(char *filename) {
             int patlen = strlen(s->filematch[i]);
             if ((p = strstr(filename,s->filematch[i])) != NULL) {
                 if (s->filematch[i][0] != '.' || p[patlen] == '\0') {
-                    E.syntax = s;
+                    E_CONFIG.syntax = s;
                     return;
                 }
             }
@@ -571,23 +572,23 @@ void editorUpdateRow(erow *row) {
 /* Insert a row at the specified position, shifting the other rows on the bottom
  * if required. */
 void editorInsertRow(int at, char *s, size_t len) {
-    if (at > E.numrows) return;
-    E.row = realloc(E.row,sizeof(erow)*(E.numrows+1));
-    if (at != E.numrows) {
-        memmove(E.row+at+1,E.row+at,sizeof(E.row[0])*(E.numrows-at));
-        for (int j = at+1; j <= E.numrows; j++) E.row[j].idx++;
+    if (at > E_CONFIG.numrows) return;
+    E_CONFIG.row = realloc(E_CONFIG.row,sizeof(erow)*(E_CONFIG.numrows+1));
+    if (at != E_CONFIG.numrows) {
+        memmove(E_CONFIG.row+at+1,E_CONFIG.row+at,sizeof(E_CONFIG.row[0])*(E_CONFIG.numrows-at));
+        for (int j = at+1; j <= E_CONFIG.numrows; j++) E_CONFIG.row[j].idx++;
     }
-    E.row[at].size = len;
-    E.row[at].chars = malloc(len+1);
-    memcpy(E.row[at].chars,s,len+1);
-    E.row[at].hl = NULL;
-    E.row[at].hl_oc = 0;
-    E.row[at].render = NULL;
-    E.row[at].rsize = 0;
-    E.row[at].idx = at;
-    editorUpdateRow(E.row+at);
-    E.numrows++;
-    E.dirty++;
+    E_CONFIG.row[at].size = len;
+    E_CONFIG.row[at].chars = malloc(len+1);
+    memcpy(E_CONFIG.row[at].chars,s,len+1);
+    E_CONFIG.row[at].hl = NULL;
+    E_CONFIG.row[at].hl_oc = 0;
+    E_CONFIG.row[at].render = NULL;
+    E_CONFIG.row[at].rsize = 0;
+    E_CONFIG.row[at].idx = at;
+    editorUpdateRow(E_CONFIG.row+at);
+    E_CONFIG.numrows++;
+    E_CONFIG.dirty++;
 }
 
 /* Free row's heap allocated stuff. */
@@ -602,13 +603,13 @@ void editorFreeRow(erow *row) {
 void editorDelRow(int at) {
     erow *row;
 
-    if (at >= E.numrows) return;
-    row = E.row+at;
+    if (at >= E_CONFIG.numrows) return;
+    row = E_CONFIG.row+at;
     editorFreeRow(row);
-    memmove(E.row+at,E.row+at+1,sizeof(E.row[0])*(E.numrows-at-1));
-    for (int j = at; j < E.numrows-1; j++) E.row[j].idx++;
-    E.numrows--;
-    E.dirty++;
+    memmove(E_CONFIG.row+at,E_CONFIG.row+at+1,sizeof(E_CONFIG.row[0])*(E_CONFIG.numrows-at-1));
+    for (int j = at; j < E_CONFIG.numrows-1; j++) E_CONFIG.row[j].idx++;
+    E_CONFIG.numrows--;
+    E_CONFIG.dirty++;
 }
 
 /* Turn the editor rows into a single heap-allocated string.
@@ -621,15 +622,15 @@ char *editorRowsToString(int *buflen) {
     int j;
 
     /* Compute count of bytes */
-    for (j = 0; j < E.numrows; j++)
-        totlen += E.row[j].size+1; /* +1 is for "\n" at end of every row */
+    for (j = 0; j < E_CONFIG.numrows; j++)
+        totlen += E_CONFIG.row[j].size+1; /* +1 is for "\n" at end of every row */
     *buflen = totlen;
     totlen++; /* Also make space for nulterm */
 
     p = buf = malloc(totlen);
-    for (j = 0; j < E.numrows; j++) {
-        memcpy(p,E.row[j].chars,E.row[j].size);
-        p += E.row[j].size;
+    for (j = 0; j < E_CONFIG.numrows; j++) {
+        memcpy(p,E_CONFIG.row[j].chars,E_CONFIG.row[j].size);
+        p += E_CONFIG.row[j].size;
         *p = '\n';
         p++;
     }
@@ -658,7 +659,7 @@ void editorRowInsertChar(erow *row, int at, int c) {
     }
     row->chars[at] = c;
     editorUpdateRow(row);
-    E.dirty++;
+    E_CONFIG.dirty++;
 }
 
 /* Append the string 's' at the end of a row */
@@ -668,7 +669,7 @@ void editorRowAppendString(erow *row, char *s, size_t len) {
     row->size += len;
     row->chars[row->size] = '\0';
     editorUpdateRow(row);
-    E.dirty++;
+    E_CONFIG.dirty++;
 }
 
 /* Delete the character at offset 'at' from the specified row. */
@@ -677,39 +678,39 @@ void editorRowDelChar(erow *row, int at) {
     memmove(row->chars+at,row->chars+at+1,row->size-at);
     editorUpdateRow(row);
     row->size--;
-    E.dirty++;
+    E_CONFIG.dirty++;
 }
 
 /* Insert the specified char at the current prompt position. */
 void editorInsertChar(int c) {
-    int filerow = E.rowoff+E.cy;
-    int filecol = E.coloff+E.cx;
-    erow *row = (filerow >= E.numrows) ? NULL : &E.row[filerow];
+    int filerow = E_CONFIG.rowoff+E_CONFIG.cy;
+    int filecol = E_CONFIG.coloff+E_CONFIG.cx;
+    erow *row = (filerow >= E_CONFIG.numrows) ? NULL : &E_CONFIG.row[filerow];
 
     /* If the row where the cursor is currently located does not exist in our
      * logical representaion of the file, add enough empty rows as needed. */
     if (!row) {
-        while(E.numrows <= filerow)
-            editorInsertRow(E.numrows,"",0);
+        while(E_CONFIG.numrows <= filerow)
+            editorInsertRow(E_CONFIG.numrows,"",0);
     }
-    row = &E.row[filerow];
+    row = &E_CONFIG.row[filerow];
     editorRowInsertChar(row,filecol,c);
-    if (E.cx == E.screencols-1)
-        E.coloff++;
+    if (E_CONFIG.cx == E_CONFIG.screencols-1)
+        E_CONFIG.coloff++;
     else
-        E.cx++;
-    E.dirty++;
+        E_CONFIG.cx++;
+    E_CONFIG.dirty++;
 }
 
 /* Inserting a newline is slightly complex as we have to handle inserting a
  * newline in the middle of a line, splitting the line as needed. */
 void editorInsertNewline(void) {
-    int filerow = E.rowoff+E.cy;
-    int filecol = E.coloff+E.cx;
-    erow *row = (filerow >= E.numrows) ? NULL : &E.row[filerow];
+    int filerow = E_CONFIG.rowoff+E_CONFIG.cy;
+    int filecol = E_CONFIG.coloff+E_CONFIG.cx;
+    erow *row = (filerow >= E_CONFIG.numrows) ? NULL : &E_CONFIG.row[filerow];
 
     if (!row) {
-        if (filerow == E.numrows) {
+        if (filerow == E_CONFIG.numrows) {
             editorInsertRow(filerow,"",0);
             goto fixcursor;
         }
@@ -723,54 +724,54 @@ void editorInsertNewline(void) {
     } else {
         /* We are in the middle of a line. Split it between two rows. */
         editorInsertRow(filerow+1,row->chars+filecol,row->size-filecol);
-        row = &E.row[filerow];
+        row = &E_CONFIG.row[filerow];
         row->chars[filecol] = '\0';
         row->size = filecol;
         editorUpdateRow(row);
     }
 fixcursor:
-    if (E.cy == E.screenrows-1) {
-        E.rowoff++;
+    if (E_CONFIG.cy == E_CONFIG.screenrows-1) {
+        E_CONFIG.rowoff++;
     } else {
-        E.cy++;
+        E_CONFIG.cy++;
     }
-    E.cx = 0;
-    E.coloff = 0;
+    E_CONFIG.cx = 0;
+    E_CONFIG.coloff = 0;
 }
 
 /* Delete the char at the current prompt position. */
 void editorDelChar() {
-    int filerow = E.rowoff+E.cy;
-    int filecol = E.coloff+E.cx;
-    erow *row = (filerow >= E.numrows) ? NULL : &E.row[filerow];
+    int filerow = E_CONFIG.rowoff+E_CONFIG.cy;
+    int filecol = E_CONFIG.coloff+E_CONFIG.cx;
+    erow *row = (filerow >= E_CONFIG.numrows) ? NULL : &E_CONFIG.row[filerow];
 
     if (!row || (filecol == 0 && filerow == 0)) return;
     if (filecol == 0) {
         /* Handle the case of column 0, we need to move the current line
          * on the right of the previous one. */
-        filecol = E.row[filerow-1].size;
-        editorRowAppendString(&E.row[filerow-1],row->chars,row->size);
+        filecol = E_CONFIG.row[filerow-1].size;
+        editorRowAppendString(&E_CONFIG.row[filerow-1],row->chars,row->size);
         editorDelRow(filerow);
         row = NULL;
-        if (E.cy == 0)
-            E.rowoff--;
+        if (E_CONFIG.cy == 0)
+            E_CONFIG.rowoff--;
         else
-            E.cy--;
-        E.cx = filecol;
-        if (E.cx >= E.screencols) {
-            int shift = (E.screencols-E.cx)+1;
-            E.cx -= shift;
-            E.coloff += shift;
+            E_CONFIG.cy--;
+        E_CONFIG.cx = filecol;
+        if (E_CONFIG.cx >= E_CONFIG.screencols) {
+            int shift = (E_CONFIG.screencols-E_CONFIG.cx)+1;
+            E_CONFIG.cx -= shift;
+            E_CONFIG.coloff += shift;
         }
     } else {
         editorRowDelChar(row,filecol-1);
-        if (E.cx == 0 && E.coloff)
-            E.coloff--;
+        if (E_CONFIG.cx == 0 && E_CONFIG.coloff)
+            E_CONFIG.coloff--;
         else
-            E.cx--;
+            E_CONFIG.cx--;
     }
     if (row) editorUpdateRow(row);
-    E.dirty++;
+    E_CONFIG.dirty++;
 }
 
 /* Load the specified program in the editor memory and returns 0 on success
@@ -778,9 +779,9 @@ void editorDelChar() {
 int editorOpen(char *filename) {
     FILE *fp;
 
-    E.dirty = 0;
-    free(E.filename);
-    E.filename = strdup(filename);
+    E_CONFIG.dirty = 0;
+    free(E_CONFIG.filename);
+    E_CONFIG.filename = strdup(filename);
 
     fp = fopen(filename,"r");
     if (!fp) {
@@ -797,11 +798,11 @@ int editorOpen(char *filename) {
     while((linelen = getline(&line,&linecap,fp)) != -1) {
         if (linelen && (line[linelen-1] == '\n' || line[linelen-1] == '\r'))
             line[--linelen] = '\0';
-        editorInsertRow(E.numrows,line,linelen);
+        editorInsertRow(E_CONFIG.numrows,line,linelen);
     }
     free(line);
     fclose(fp);
-    E.dirty = 0;
+    E_CONFIG.dirty = 0;
     return 0;
 }
 
@@ -809,7 +810,7 @@ int editorOpen(char *filename) {
 int editorSave(void) {
     int len;
     char *buf = editorRowsToString(&len);
-    int fd = open(E.filename,O_RDWR|O_CREAT,0644);
+    int fd = open(E_CONFIG.filename,O_RDWR|O_CREAT,0644);
     if (fd == -1) goto writeerr;
 
     /* Use truncate + a single write(2) call in order to make saving
@@ -819,7 +820,7 @@ int editorSave(void) {
 
     close(fd);
     free(buf);
-    E.dirty = 0;
+    E_CONFIG.dirty = 0;
     editorSetStatusMessage("%d bytes written on disk", len);
     return 0;
 
@@ -857,7 +858,7 @@ void abFree(struct abuf *ab) {
 }
 
 /* This function writes the whole screen using VT100 escape characters
- * starting from the logical state of the editor in the global state 'E'. */
+ * starting from the logical state of the editor in the global state 'E_CONFIG'. */
 void editorRefreshScreen(void) {
     int y;
     erow *r;
@@ -866,15 +867,15 @@ void editorRefreshScreen(void) {
 
     abAppend(&ab,"\x1b[?25l",6); /* Hide cursor. */
     abAppend(&ab,"\x1b[H",3); /* Go home. */
-    for (y = 0; y < E.screenrows; y++) {
-        int filerow = E.rowoff+y;
+    for (y = 0; y < E_CONFIG.screenrows; y++) {
+        int filerow = E_CONFIG.rowoff+y;
 
-        if (filerow >= E.numrows) {
-            if (E.numrows == 0 && y == E.screenrows/3) {
+        if (filerow >= E_CONFIG.numrows) {
+            if (E_CONFIG.numrows == 0 && y == E_CONFIG.screenrows/3) {
                 char welcome[80];
                 int welcomelen = snprintf(welcome,sizeof(welcome),
                     "KiloCrypt editor -- verison %s\x1b[0K\r\n", KILO_CRYPT_VERSION);
-                int padding = (E.screencols-welcomelen)/2;
+                int padding = (E_CONFIG.screencols-welcomelen)/2;
                 if (padding) {
                     abAppend(&ab,"~",1);
                     padding--;
@@ -887,14 +888,14 @@ void editorRefreshScreen(void) {
             continue;
         }
 
-        r = &E.row[filerow];
+        r = &E_CONFIG.row[filerow];
 
-        int len = r->rsize - E.coloff;
+        int len = r->rsize - E_CONFIG.coloff;
         int current_color = -1;
         if (len > 0) {
-            if (len > E.screencols) len = E.screencols;
-            char *c = r->render+E.coloff;
-            unsigned char *hl = r->hl+E.coloff;
+            if (len > E_CONFIG.screencols) len = E_CONFIG.screencols;
+            char *c = r->render+E_CONFIG.coloff;
+            unsigned char *hl = r->hl+E_CONFIG.coloff;
             int j;
             for (j = 0; j < len; j++) {
                 if (hl[j] == HL_NONPRINT) {
@@ -934,13 +935,13 @@ void editorRefreshScreen(void) {
     abAppend(&ab,"\x1b[7m",4);
     char status[80], rstatus[80];
     int len = snprintf(status, sizeof(status), "%.20s - %d lines %s",
-        E.filename, E.numrows, E.dirty ? "(modified)" : "");
+        E_CONFIG.filename, E_CONFIG.numrows, E_CONFIG.dirty ? "(modified)" : "");
     int rlen = snprintf(rstatus, sizeof(rstatus),
-        "%d/%d",E.rowoff+E.cy+1,E.numrows);
-    if (len > E.screencols) len = E.screencols;
+        "%d/%d",E_CONFIG.rowoff+E_CONFIG.cy+1,E_CONFIG.numrows);
+    if (len > E_CONFIG.screencols) len = E_CONFIG.screencols;
     abAppend(&ab,status,len);
-    while(len < E.screencols) {
-        if (E.screencols - len == rlen) {
+    while(len < E_CONFIG.screencols) {
+        if (E_CONFIG.screencols - len == rlen) {
             abAppend(&ab,rstatus,rlen);
             break;
         } else {
@@ -950,26 +951,26 @@ void editorRefreshScreen(void) {
     }
     abAppend(&ab,"\x1b[0m\r\n",6);
 
-    /* Second row depends on E.statusmsg and the status message update time. */
+    /* Second row depends on E_CONFIG.statusmsg and the status message update time. */
     abAppend(&ab,"\x1b[0K",4);
-    int msglen = strlen(E.statusmsg);
-    if (msglen && time(NULL)-E.statusmsg_time < 5)
-        abAppend(&ab,E.statusmsg,msglen <= E.screencols ? msglen : E.screencols);
+    int msglen = strlen(E_CONFIG.statusmsg);
+    if (msglen && time(NULL)-E_CONFIG.statusmsg_time < 5)
+        abAppend(&ab,E_CONFIG.statusmsg,msglen <= E_CONFIG.screencols ? msglen : E_CONFIG.screencols);
 
     /* Put cursor at its current position. Note that the horizontal position
-     * at which the cursor is displayed may be different compared to 'E.cx'
+     * at which the cursor is displayed may be different compared to 'E_CONFIG.cx'
      * because of TABs. */
     int j;
     int cx = 1;
-    int filerow = E.rowoff+E.cy;
-    erow *row = (filerow >= E.numrows) ? NULL : &E.row[filerow];
+    int filerow = E_CONFIG.rowoff+E_CONFIG.cy;
+    erow *row = (filerow >= E_CONFIG.numrows) ? NULL : &E_CONFIG.row[filerow];
     if (row) {
-        for (j = E.coloff; j < (E.cx+E.coloff); j++) {
+        for (j = E_CONFIG.coloff; j < (E_CONFIG.cx+E_CONFIG.coloff); j++) {
             if (j < row->size && row->chars[j] == TAB) cx += 7-((cx)%8);
             cx++;
         }
     }
-    snprintf(buf,sizeof(buf),"\x1b[%d;%dH",E.cy+1,cx);
+    snprintf(buf,sizeof(buf),"\x1b[%d;%dH",E_CONFIG.cy+1,cx);
     abAppend(&ab,buf,strlen(buf));
     abAppend(&ab,"\x1b[?25h",6); /* Show cursor. */
     write(STDOUT_FILENO,ab.b,ab.len);
@@ -981,9 +982,9 @@ void editorRefreshScreen(void) {
 void editorSetStatusMessage(const char *fmt, ...) {
     va_list ap;
     va_start(ap,fmt);
-    vsnprintf(E.statusmsg,sizeof(E.statusmsg),fmt,ap);
+    vsnprintf(E_CONFIG.statusmsg,sizeof(E_CONFIG.statusmsg),fmt,ap);
     va_end(ap);
-    E.statusmsg_time = time(NULL);
+    E_CONFIG.statusmsg_time = time(NULL);
 }
 
 /* =============================== Find mode ================================ */
@@ -1000,14 +1001,14 @@ void editorFind(int fd) {
 
 #define FIND_RESTORE_HL do { \
     if (saved_hl) { \
-        memcpy(E.row[saved_hl_line].hl,saved_hl, E.row[saved_hl_line].rsize); \
+        memcpy(E_CONFIG.row[saved_hl_line].hl,saved_hl, E_CONFIG.row[saved_hl_line].rsize); \
         saved_hl = NULL; \
     } \
 } while (0)
 
     /* Save the cursor position in order to restore it later. */
-    int saved_cx = E.cx, saved_cy = E.cy;
-    int saved_coloff = E.coloff, saved_rowoff = E.rowoff;
+    int saved_cx = E_CONFIG.cx, saved_cy = E_CONFIG.cy;
+    int saved_coloff = E_CONFIG.coloff, saved_rowoff = E_CONFIG.rowoff;
 
     while(1) {
         editorSetStatusMessage(
@@ -1020,8 +1021,8 @@ void editorFind(int fd) {
             last_match = -1;
         } else if (c == ESC || c == ENTER) {
             if (c == ESC) {
-                E.cx = saved_cx; E.cy = saved_cy;
-                E.coloff = saved_coloff; E.rowoff = saved_rowoff;
+                E_CONFIG.cx = saved_cx; E_CONFIG.cy = saved_cy;
+                E_CONFIG.coloff = saved_coloff; E_CONFIG.rowoff = saved_rowoff;
             }
             FIND_RESTORE_HL;
             editorSetStatusMessage("");
@@ -1045,13 +1046,13 @@ void editorFind(int fd) {
             int match_offset = 0;
             int i, current = last_match;
 
-            for (i = 0; i < E.numrows; i++) {
+            for (i = 0; i < E_CONFIG.numrows; i++) {
                 current += find_next;
-                if (current == -1) current = E.numrows-1;
-                else if (current == E.numrows) current = 0;
-                match = strstr(E.row[current].render,query);
+                if (current == -1) current = E_CONFIG.numrows-1;
+                else if (current == E_CONFIG.numrows) current = 0;
+                match = strstr(E_CONFIG.row[current].render,query);
                 if (match) {
-                    match_offset = match-E.row[current].render;
+                    match_offset = match-E_CONFIG.row[current].render;
                     break;
                 }
             }
@@ -1061,7 +1062,7 @@ void editorFind(int fd) {
             FIND_RESTORE_HL;
 
             if (match) {
-                erow *row = &E.row[current];
+                erow *row = &E_CONFIG.row[current];
                 last_match = current;
                 if (row->hl) {
                     saved_hl_line = current;
@@ -1069,15 +1070,15 @@ void editorFind(int fd) {
                     memcpy(saved_hl,row->hl,row->rsize);
                     memset(row->hl+match_offset,HL_MATCH,qlen);
                 }
-                E.cy = 0;
-                E.cx = match_offset;
-                E.rowoff = current;
-                E.coloff = 0;
+                E_CONFIG.cy = 0;
+                E_CONFIG.cx = match_offset;
+                E_CONFIG.rowoff = current;
+                E_CONFIG.coloff = 0;
                 /* Scroll horizontally as needed. */
-                if (E.cx > E.screencols) {
-                    int diff = E.cx - E.screencols;
-                    E.cx -= diff;
-                    E.coloff += diff;
+                if (E_CONFIG.cx > E_CONFIG.screencols) {
+                    int diff = E_CONFIG.cx - E_CONFIG.screencols;
+                    E_CONFIG.cx -= diff;
+                    E_CONFIG.coloff += diff;
                 }
             }
         }
@@ -1088,74 +1089,74 @@ void editorFind(int fd) {
 
 /* Handle cursor position change because arrow keys were pressed. */
 void editorMoveCursor(int key) {
-    int filerow = E.rowoff+E.cy;
-    int filecol = E.coloff+E.cx;
+    int filerow = E_CONFIG.rowoff+E_CONFIG.cy;
+    int filecol = E_CONFIG.coloff+E_CONFIG.cx;
     int rowlen;
-    erow *row = (filerow >= E.numrows) ? NULL : &E.row[filerow];
+    erow *row = (filerow >= E_CONFIG.numrows) ? NULL : &E_CONFIG.row[filerow];
 
     switch(key) {
     case ARROW_LEFT:
-        if (E.cx == 0) {
-            if (E.coloff) {
-                E.coloff--;
+        if (E_CONFIG.cx == 0) {
+            if (E_CONFIG.coloff) {
+                E_CONFIG.coloff--;
             } else {
                 if (filerow > 0) {
-                    E.cy--;
-                    E.cx = E.row[filerow-1].size;
-                    if (E.cx > E.screencols-1) {
-                        E.coloff = E.cx-E.screencols+1;
-                        E.cx = E.screencols-1;
+                    E_CONFIG.cy--;
+                    E_CONFIG.cx = E_CONFIG.row[filerow-1].size;
+                    if (E_CONFIG.cx > E_CONFIG.screencols-1) {
+                        E_CONFIG.coloff = E_CONFIG.cx-E_CONFIG.screencols+1;
+                        E_CONFIG.cx = E_CONFIG.screencols-1;
                     }
                 }
             }
         } else {
-            E.cx -= 1;
+            E_CONFIG.cx -= 1;
         }
         break;
     case ARROW_RIGHT:
         if (row && filecol < row->size) {
-            if (E.cx == E.screencols-1) {
-                E.coloff++;
+            if (E_CONFIG.cx == E_CONFIG.screencols-1) {
+                E_CONFIG.coloff++;
             } else {
-                E.cx += 1;
+                E_CONFIG.cx += 1;
             }
         } else if (row && filecol == row->size) {
-            E.cx = 0;
-            E.coloff = 0;
-            if (E.cy == E.screenrows-1) {
-                E.rowoff++;
+            E_CONFIG.cx = 0;
+            E_CONFIG.coloff = 0;
+            if (E_CONFIG.cy == E_CONFIG.screenrows-1) {
+                E_CONFIG.rowoff++;
             } else {
-                E.cy += 1;
+                E_CONFIG.cy += 1;
             }
         }
         break;
     case ARROW_UP:
-        if (E.cy == 0) {
-            if (E.rowoff) E.rowoff--;
+        if (E_CONFIG.cy == 0) {
+            if (E_CONFIG.rowoff) E_CONFIG.rowoff--;
         } else {
-            E.cy -= 1;
+            E_CONFIG.cy -= 1;
         }
         break;
     case ARROW_DOWN:
-        if (filerow < E.numrows) {
-            if (E.cy == E.screenrows-1) {
-                E.rowoff++;
+        if (filerow < E_CONFIG.numrows) {
+            if (E_CONFIG.cy == E_CONFIG.screenrows-1) {
+                E_CONFIG.rowoff++;
             } else {
-                E.cy += 1;
+                E_CONFIG.cy += 1;
             }
         }
         break;
     }
     /* Fix cx if the current line has not enough chars. */
-    filerow = E.rowoff+E.cy;
-    filecol = E.coloff+E.cx;
-    row = (filerow >= E.numrows) ? NULL : &E.row[filerow];
+    filerow = E_CONFIG.rowoff+E_CONFIG.cy;
+    filecol = E_CONFIG.coloff+E_CONFIG.cx;
+    row = (filerow >= E_CONFIG.numrows) ? NULL : &E_CONFIG.row[filerow];
     rowlen = row ? row->size : 0;
     if (filecol > rowlen) {
-        E.cx -= filecol-rowlen;
-        if (E.cx < 0) {
-            E.coloff += E.cx;
-            E.cx = 0;
+        E_CONFIG.cx -= filecol-rowlen;
+        if (E_CONFIG.cx < 0) {
+            E_CONFIG.coloff += E_CONFIG.cx;
+            E_CONFIG.cx = 0;
         }
     }
 }
@@ -1179,7 +1180,7 @@ void editorProcessKeypress(int fd) {
         break;
     case CTRL_Q:        /* Ctrl-q */
         /* Quit if the file was already saved. */
-        if (E.dirty && quit_times) {
+        if (E_CONFIG.dirty && quit_times) {
             editorSetStatusMessage("WARNING!!! File has unsaved changes. "
                 "Press Ctrl-Q %d more times to quit.", quit_times);
             quit_times--;
@@ -1203,12 +1204,12 @@ void editorProcessKeypress(int fd) {
         break;
     case PAGE_UP:
     case PAGE_DOWN:
-        if (c == PAGE_UP && E.cy != 0)
-            E.cy = 0;
-        else if (c == PAGE_DOWN && E.cy != E.screenrows-1)
-            E.cy = E.screenrows-1;
+        if (c == PAGE_UP && E_CONFIG.cy != 0)
+            E_CONFIG.cy = 0;
+        else if (c == PAGE_DOWN && E_CONFIG.cy != E_CONFIG.screenrows-1)
+            E_CONFIG.cy = E_CONFIG.screenrows-1;
         {
-        int times = E.screenrows;
+        int times = E_CONFIG.screenrows;
         while(times--)
             editorMoveCursor(c == PAGE_UP ? ARROW_UP:
                                             ARROW_DOWN);
@@ -1236,26 +1237,28 @@ void editorProcessKeypress(int fd) {
 }
 
 int editorFileWasModified(void) {
-    return E.dirty;
+    return E_CONFIG.dirty;
 }
 
 void initEditor(void) {
-    E.cx = 0;
-    E.cy = 0;
-    E.rowoff = 0;
-    E.coloff = 0;
-    E.numrows = 0;
-    E.row = NULL;
-    E.dirty = 0;
-    E.filename = NULL;
-    E.syntax = NULL;
+    E_CONFIG.cx = 0;
+    E_CONFIG.cy = 0;
+    E_CONFIG.rowoff = 0;
+    E_CONFIG.coloff = 0;
+    E_CONFIG.numrows = 0;
+    E_CONFIG.row = NULL;
+    E_CONFIG.dirty = 0;
+    E_CONFIG.filename = NULL;
+    E_CONFIG.syntax = NULL;
     if (getWindowSize(STDIN_FILENO,STDOUT_FILENO,
-                      &E.screenrows,&E.screencols) == -1)
+                      &E_CONFIG.screenrows,&E_CONFIG.screencols) == -1)
     {
         perror("Unable to query the screen for size (columns / rows)");
         exit(1);
     }
-    E.screenrows -= 2; /* Get room for status bar. */
+
+    E_CONFIG.encryptedmode = 0;
+    E_CONFIG.screenrows -= 2; /* Get room for status bar. */
 }
 
 void editorShowHelpInStatusMessage(void) {
