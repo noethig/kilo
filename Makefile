@@ -1,7 +1,7 @@
-all: kilo
+all: kiloCrypt
 
-kilo: kilo.c
+kiloCrypt: kiloCrypt.c
 	$(CC) -o kiloCrypt kiloCrypt.c -Wall -W -pedantic -std=c99
 
 clean:
-	rm kilo
+	rm kiloCrypt
