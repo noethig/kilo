@@ -67,7 +67,7 @@ encryptor_t* encryptor_new() {
 
 int main(int argc, char *argv[])
 {
-    encryptor_t e  = encryptor_new();
+    encryptor_t e  = &encryptor_new();
     if (argc == 2) {
         printf("yallah %s", argv[1]);
     }
