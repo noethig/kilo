@@ -16,13 +16,14 @@
 typedef struct data_struct_s
 {
     char key_string[KEY_MAX_LENGTH];
-    int number;
+    char val_string[KEY_MAX_LENGTH];
 } data_struct_t;
 
-typedef struct encryptor_struct_t {
-    map_t map;
-    map_t inverseMap;
-} encryptor_struct_t;
+typedef struct encryptor_s {
+    map_t *map;
+    map_t *inverseMap;
+    map_t *curMap;
+} encryptor_t;
 
 
 void loadMappingFile(FILE* fp){
@@ -44,24 +45,35 @@ void loadMappingFile(FILE* fp){
  
 int main(int argc, char *argv[])
 {
-    encryptor_new();
+    encryptor_t* e  = encryptor_new();
     if (argc == 2) {
         printf("yallah %s", argv[1]);
     }
+
+    return 0;
+}
+
+encryptor_t encryptor_new() {
+    encryptor_t* e = (encryptor_t*) malloc(sizeof(encryptor_t));
+
+    /*
+    mymap = hashmap_new();
+
     
-    return 0;
-}
-
-void encryptor_new() {
     loadMappingFile(MAPPING_FILE_NAME);
+
+    hashmap_map* m = (hashmap_map*) malloc(sizeof(hashmap_map));
+	if(!m) goto err;
+
+	m->data = (hashmap_element*) calloc(INITIAL_SIZE, sizeof(hashmap_element));
+	if(!m->data) goto err;
+
+	m->table_size = INITIAL_SIZE;
+	m->size = 0;*/
+
+	return e;
 }
 
-/*
-int main(char* argv, int argc) {
-    encryptor_new("mapping.conf");
-    return 0;
-}
-*/
 
 // int main(char* argv, int argc)
 // {
