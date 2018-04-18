@@ -65,7 +65,7 @@ encryptor_t* encryptor_new() {
 	return e;
 }
 
-void free() {
+void free_encryptor() {
     // TODO
 }
 
