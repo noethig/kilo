@@ -371,14 +371,14 @@ void editorUpdateSyntax(erow *row) {
     row->hl = realloc(row->hl,row->rsize);
     memset(row->hl,HL_NORMAL,row->rsize);
 
-    if (E.syntax == NULL) return; /* No syntax, everything is HL_NORMAL. */
+    if (E_CONFIG.syntax == NULL) return; /* No syntax, everything is HL_NORMAL. */
 
     int i, prev_sep, in_string, in_comment;
     char *p;
-    char **keywords = E.syntax->keywords;
-    char *scs = E.syntax->singleline_comment_start;
-    char *mcs = E.syntax->multiline_comment_start;
-    char *mce = E.syntax->multiline_comment_end;
+    char **keywords = E_CONFIG.syntax->keywords;
+    char *scs = E_CONFIG.syntax->singleline_comment_start;
+    char *mcs = E_CONFIG.syntax->multiline_comment_start;
+    char *mce = E_CONFIG.syntax->multiline_comment_end;
 
     /* Point to the first non-space char. */
     p = row->render;
@@ -393,7 +393,7 @@ void editorUpdateSyntax(erow *row) {
 
     /* If the previous line has an open comment, this line starts
      * with an open comment state. */
-    if (row->idx > 0 && editorRowHasOpenComment(&E.row[row->idx-1]))
+    if (row->idx > 0 && editorRowHasOpenComment(&E_CONFIG.row[row->idx-1]))
         in_comment = 1;
 
     while(*p) {
@@ -499,8 +499,8 @@ void editorUpdateSyntax(erow *row) {
      * state changed. This may recursively affect all the following rows
      * in the file. */
     int oc = editorRowHasOpenComment(row);
-    if (row->hl_oc != oc && row->idx+1 < E.numrows)
-        editorUpdateSyntax(&E.row[row->idx+1]);
+    if (row->hl_oc != oc && row->idx+1 < E_CONFIG.numrows)
+        editorUpdateSyntax(&E_CONFIG.row[row->idx+1]);
     row->hl_oc = oc;
 }
 
@@ -519,7 +519,7 @@ int editorSyntaxToColor(int hl) {
 }
 
 /* Select the syntax highlight scheme depending on the filename,
- * setting it in the global state E.syntax. */
+ * setting it in the global state E_CONFIG.syntax. */
 void editorSelectSyntaxHighlight(char *filename) {
     for (unsigned int j = 0; j < HLDB_ENTRIES; j++) {
         struct editorSyntax *s = HLDB+j;
