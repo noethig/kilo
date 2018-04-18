@@ -48,6 +48,8 @@
 #include <stdarg.h>
 #include <fcntl.h>
 
+#include "hashmap.h"
+
 /* Syntax highlight types */
 #define HL_NORMAL 0
 #define HL_NONPRINT 1
@@ -953,7 +955,7 @@ void editorRefreshScreen(void) {
         }
     }
     abAppend(&ab,"\x1b[0m\r\n",6);
-    
+
     /* Second row depends on E_CONFIG.statusmsg and the status message update time. */
     // BgGreen = "\x1b[42m"
     // abAppend(&ab,"\x1b[0K",4);
