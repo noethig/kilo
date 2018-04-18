@@ -53,7 +53,7 @@ int main(int argc, char *argv[])
     return 0;
 }
 
-encryptor_t encryptor_new() {
+encryptor_t* encryptor_new() {
     encryptor_t* e = (encryptor_t*) malloc(sizeof(encryptor_t));
 
     /*
