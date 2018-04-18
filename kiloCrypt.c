@@ -1,10 +1,7 @@
-/* Kilo -- A very simple editor in less than 1-kilo lines of code (as counted
- *         by "cloc"). Does not depend on libcurses, directly emits VT100
- *         escapes on the terminal.
- *
+/* 
  * -----------------------------------------------------------------------
  *
- * Copyright (C) 2016 Salvatore Sanfilippo <antirez at gmail dot com>
+ * Copyright (C) 2016 Martin Noethig
  *
  * All rights reserved.
  *
@@ -32,7 +29,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#define KILO_VERSION "0.0.1"
+#define KILO_CRYPT_VERSION "0.0.1"
 
 #define _BSD_SOURCE
 #define _GNU_SOURCE
@@ -870,7 +867,7 @@ void editorRefreshScreen(void) {
             if (E.numrows == 0 && y == E.screenrows/3) {
                 char welcome[80];
                 int welcomelen = snprintf(welcome,sizeof(welcome),
-                    "Kilo editor -- verison %s\x1b[0K\r\n", KILO_VERSION);
+                    "KiloCrypt editor -- verison %s\x1b[0K\r\n", KILO_CRYPT_VERSION);
                 int padding = (E.screencols-welcomelen)/2;
                 if (padding) {
                     abAppend(&ab,"~",1);
@@ -1191,8 +1188,9 @@ void editorProcessKeypress(int fd) {
     case CTRL_F:
         editorFind(fd);
         break;
-    case BACKSPACE:     /* Backspace */
     case CTRL_H:        /* Ctrl-h */
+        break;
+    case BACKSPACE:     /* Backspace */
     case DEL_KEY:
         editorDelChar();
         break;
@@ -1255,7 +1253,7 @@ void initEditor(void) {
 
 int main(int argc, char **argv) {
     if (argc != 2) {
-        fprintf(stderr,"Usage: kilo <filename>\n");
+        fprintf(stderr,"Usage: kiloCrypt <filename>\n");
         exit(1);
     }
 
