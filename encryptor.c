@@ -44,8 +44,8 @@ void loadMappingFile(FILE* fp){
 }
  
 
-encryptor_t encryptor_new() {
-    encryptor_t e = (encryptor_t) malloc(sizeof(encryptor_t));
+encryptor_t* encryptor_new() {
+    encryptor_t* e = (encryptor_t*) malloc(sizeof(encryptor_t));
 
     /*
     mymap = hashmap_new();
@@ -63,6 +63,10 @@ encryptor_t encryptor_new() {
 	m->size = 0;*/
 
 	return e;
+}
+
+void free() {
+    // TODO
 }
 
 int main(int argc, char *argv[])
