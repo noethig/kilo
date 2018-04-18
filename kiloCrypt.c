@@ -1198,6 +1198,9 @@ void editorProcessKeypress(int fd) {
     case CTRL_H:        /* Ctrl-h */
         editorShowHelpInStatusMessage();
         break;
+    case CTRL_P:
+        editorSetStatusMessage("Maniac! Ctrl-P pressed!");
+        break;
     case BACKSPACE:     /* Backspace */
     case DEL_KEY:
         editorDelChar();
