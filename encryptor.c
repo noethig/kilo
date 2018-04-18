@@ -1,6 +1,8 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <assert.h>
+#define bufSize 1024
 
 #include "hashmap.h"
 
@@ -21,6 +23,34 @@ typedef struct encryptor_struct_t {
 } encryptor_struct_t;
 
 
+ 
+ 
+int main(int argc, char *argv[])
+{
+  FILE* fp;
+  char buf[bufSize];
+  if (argc != 2)
+  {
+    fprintf(stderr,
+            "Usage: %s <soure-file>\n", argv[0]);
+    return 1;
+  }
+  if ((fp = fopen(argv[1], "r")) == NULL)
+  { /* Open source file. */
+    perror("fopen source-file");
+    return 1;
+  }
+ 
+  while (fgets(buf, sizeof(buf), fp) != NULL)
+  {
+    buf[strlen(buf) - 1] = '\0'; // eat the newline fgets() stores
+    printf("%s\n", buf);
+  }
+  fclose(fp);
+  return 0;
+}
+
+/*
 int openfile(char *filename)
 {
     FILE * fp;
@@ -45,13 +75,14 @@ int openfile(char *filename)
 
 void encryptor_new(char *filename) {
     openFile(filename);
-}
+}*/
 
+/*
 int main(char* argv, int argc) {
     encryptor_new("mapping.conf");
     return 0;
 }
-
+*/
 
 // int main(char* argv, int argc)
 // {
