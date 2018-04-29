@@ -2,15 +2,23 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
-#define bufSize 1024
-
+#include <wchar.h>
+#include <locale.h>
 #include "hashmap.h"
+
+
+#define bufSize 1024
 
 #define KEY_MAX_LENGTH (256)
 #define KEY_PREFIX ("somekey")
 #define KEY_COUNT (1024*1024)
 
 #define MAPPING_FILE_NAME ("mapping.conf")
+
+#define true 1
+#define false 0
+
+#define space 32
 
 
 typedef struct data_struct_s
@@ -20,63 +28,102 @@ typedef struct data_struct_s
 } data_struct_t;
 
 typedef struct encryptor_s {
-    map_t *map;
-    map_t *inverseMap;
-    map_t *curMap;
+    map_t* map;
+    map_t* inverseMap;
+    map_t* curMap;
 } encryptor_t;
 
 
-void loadMappingFile(FILE* fp){
-    char buf[bufSize];
+void addPairToMap(encryptor_t* e, wint_t keyChar, wint_t valueChar) {
 
-    if ((fp = fopen(fp, "r")) == NULL)
-    { /* Open source file. */
-        perror("fopen source-file");
-        return 1;
-    }
+//     int index;
+//     int error;
+//     map_t mymap;
+//     char key_string[KEY_MAX_LENGTH];
+     data_struct_t* value;
     
-    while (fgets(buf, sizeof(buf), fp) != NULL)
-    {
-        buf[strlen(buf) - 1] = '\0'; // eat the newline fgets() stores
-        printf("%s\n", buf);
-    }
-    fclose(fp);
+//     mymap = hashmap_new();
+
+//     /* First, populate the hash map with ascending values */
+//     for (index=0; index<KEY_COUNT; index+=1)
+//     {
+//         /* Store the key string along side the numerical value so we can free it later */
+         value = malloc(sizeof(data_struct_t));
+//         snprintf(value->key_string, KEY_MAX_LENGTH, "%s%d", KEY_PREFIX, index);
+//         value->number = index;
+
+//         error = hashmap_put(mymap, value->key_string, value);
+//         assert(error==MAP_OK);
+//     }
+
+
+	hashmap_put(e->map, keyChar, valueChar);
+		
+	printf("pair <");
+        putwchar(keyChar);
+        putwchar(',');
+        putwchar(valueChar);
+        printf(">\n");
 }
+
+int loadMappingFile(FILE* fp, encryptor_t* e) {
+    char* locale = setlocale(LC_ALL, "");
+    FILE* in = fopen(MAPPING_FILE_NAME, "rb");
+    
+    wint_t keyChar;
+    wint_t valueChar;
+
+//     int index;
+//     int error;
+//     map_t mymap;
+//     char key_string[KEY_MAX_LENGTH];
+     //data_struct_t* value;
+    
+//     mymap = hashmap_new();
+
+//     /* First, populate the hash map with ascending values */
+//     for (index=0; index<KEY_COUNT; index+=1)
+//     {
+//         /* Store the key string along side the numerical value so we can free it later */
+//         value = malloc(sizeof(data_struct_t));
+//         snprintf(value->key_string, KEY_MAX_LENGTH, "%s%d", KEY_PREFIX, index);
+//         value->number = index;
+
+//         error = hashmap_put(mymap, value->key_string, value);
+//         assert(error==MAP_OK);
+//     }
+    
+    wint_t c = fgetwc(in);
+    while (c != NULL && c != WEOF) {
+        while (c == '\n' ||  c == space) c = fgetwc(in); if (c == WEOF) break;
+        keyChar = c;
+        c = fgetwc(in);
+        while (c == '\n' ||  c == space) c = fgetwc(in); if (c == WEOF) break;
+        valueChar = c;
+	addPairToMap(e, keyChar, valueChar);
+	
+        c = fgetwc(in);
+    }
+    fclose(in);
+    
+    return EXIT_SUCCESS;
+}
+
+ 
  
 
 encryptor_t* encryptor_new() {
     encryptor_t* e = (encryptor_t*) malloc(sizeof(encryptor_t));
-
-    /*
-    mymap = hashmap_new();
+    e->map = hashmap_new();
 
     
-    loadMappingFile(MAPPING_FILE_NAME);
-
-    hashmap_map* m = (hashmap_map*) malloc(sizeof(hashmap_map));
-	if(!m) goto err;
-
-	m->data = (hashmap_element*) calloc(INITIAL_SIZE, sizeof(hashmap_element));
-	if(!m->data) goto err;
-
-	m->table_size = INITIAL_SIZE;
-	m->size = 0;*/
+    loadMappingFile(MAPPING_FILE_NAME, e);
 
 	return e;
 }
 
-void free_encryptor() {
-    // TODO
-}
-
-int main(int argc, char *argv[])
-{
-    encryptor_t e  = encryptor_new();
-    if (argc == 2) {
-        printf("yallah %s", argv[1]);
-    }
-
-    return 0;
+void free_encryptor(encryptor_t* e) {
+    hashmap_free(e->map);
 }
 
 
@@ -144,19 +191,30 @@ int main(int argc, char *argv[])
 // }
 
 
+void printFile() {
+    char *locale = setlocale(LC_ALL, "");
+    FILE* in = fopen(MAPPING_FILE_NAME, "rb");
+    
+    wint_t c = fgetwc(in);
+    while (c != NULL && c != EOF) {
+        if (c == '\n') printf(" ... EOL");
+        if (c == space) printf(" space ");
+        putwchar(c);
+        
+        c = fgetwc(in);
+    }
+    fclose(in);
+    
+    return EXIT_SUCCESS;
+}
 
 
 
+int main(int argc, char* argv) {
+    encryptor_t* e = encryptor_new();
+    free_encryptor(e);
 
+// TODO: free all entries in hashmap
 
-
-
-
-
-
-
-
-
-
-
-
+    //printFile();
+}

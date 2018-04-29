@@ -6,5 +6,5 @@ kiloCrypt: kiloCrypt.c
 clean:
 	rm kilocrypt
 
-encryptor: encryptor.c
-	$(CC) -o encryptor encryptor.c -Wall -W -pedantic -std=c99
+encryptor: encryptor.c hashmap.o hashmap.h
+	$(CC) -o encryptor encryptor.c hashmap.o -Wall -W -pedantic -std=c99
